@@ -9,6 +9,7 @@ class Connect4:
 		self.__board = []
 		self.__player = 1 # (Players as 1 and 2 )
 		self.__boardSize = (6,7)
+		self.__isWin = False
 
 	def __makeBoard(self):
 		# Really only necessary if we have varying board sizes
@@ -23,8 +24,23 @@ class Connect4:
 		for row in self.__board:
 			print(row)
 
-	def __checkWin(self, move):
-		# This method takes in a move and checks if it results in a win
+	def __checkWin(self, x, y):
+		# This method takes in a Moves x,y coords and checks if it results in a win
+		# We only need to check for the current player
+		inRow = 0
+		# First check horizontal
+		for i in range(self.__boardSize[1] - 4):
+			if self.__board[y][i] == self.__player:
+				
+				pass
+
+
+		# Then check vertical
+
+		# Finally check diagonals 
+
+
+
 
 	def __playMove(self, move):
 		# This method takes in a move and plays it on the board if it is valid
@@ -40,6 +56,10 @@ class Connect4:
 						
 						if self.__board[i][move] == 0:
 							self.__board[i][move] = self.__player
+							
+							if self.__checkWin(move, i):
+								self.__isWin = True
+							
 							return True
 				else:
 					
@@ -54,6 +74,9 @@ class Connect4:
 			#If invalid move entered, notify user and return False
 			print("Move {} is invalid.".format(move))
 			return False
+
+	def reset(self):
+		pass
 
 
 		#not sure what to do with this yet
