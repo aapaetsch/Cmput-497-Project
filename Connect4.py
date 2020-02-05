@@ -5,199 +5,122 @@ import os
 
 class Connect4:
 
-	def __init__(self, diff, opp):
+    def __init__(self):
 
-		self.__board = []
-		self.__player = 'R' # (Players as 1 and 2 )
-		self.__boardSize = (6,7)
-		self.__isWin = False
-		self.__remainingMoves = 6 * 7
-		self.__clear = 'cls' if sys.platform == 'win32' else 'clear'
-		self.__opponent = opp #Can be "player or computer"
-		self.__difficulty = diff # Maybe do easy medium hard?
+        self.__player = 1
+        
+        self.__boardSize = (6,7) #Just in case we want to do variable sizes
+        self.__board = np.zeros((self.__boardSize[0], self.__boardSize[1]), dtype=int)
 
-	def __makeBoard(self):
-		# Really only necessary if we have varying board sizes
-		y = self.__boardSize[0]
-		x = self.__boardSize[1]
-		self.__board =  [ [' '] * x for i in range(y)]
+        self.__isWin = False
+        self.__winType = None
+        self.__winner = None
+        self.__validMoves = [i for i in range(self.__boardSize[1])]
 
-	
+    def __checkWin(self, x, y):
+        # This method takes in a moves x,y coords and checks if it results in a win
+        horizontal = self.__board[y]
+        vertical = self.__board[:,x]
+        diagonalLR = self.__board.diagonal(x - y)
+        diagonalRL = np.fliplr(self.__board).diagonal(abs(x-self.__boardSize[0]) - y)
 
-	def showBoard(self):
+        if self.__checkInRow(horizontal):
+            return True, 'horizontal'
+        
+        elif self.__checkInRow(vertical):
+            return True, 'vertical'
+        
+        elif self.__checkInRow(diagonalLR):
+            return True, 'LR Diagonal'
 
-		print(' ' + ' '.join([str(i) for i in range( 1, self.__boardSize[1] + 1) ]))
+        elif self.__checkInRow(diagonalRL):
+            return True, 'RL diagonal'
 
-		for row in self.__board:
-			r = '|'
-			for i in row: 
-				r += i + "|"
-			print(r)
+        return False, None
 
-	
+    def __checkInRow(self, array):
+        inRow = 0
+        for i in array:
+            inRow = inRow + 1 if i == self.__player else 0
+            if inRow == 4:
+                return True
+        return False
 
-	def clearScreen(self):
-		os.system(self.__clear)
+    def __playMove(self, move):
+        # This method takes in a move and plays it on the board
 
-	def __checkWin(self, x, y):
-		# This method takes in a Moves x,y coords and checks if it results in a win
-		inRow = 0
-		# First check horizontal
-		if self.__checkHorizontal(y):
-			return True, "horizontal"
+        for i in range(self.__boardSize[0]-1, -1, -1):
+            if self.__board[i][move] == 0:
+                self.__board[i][move] = self.__player
+                if i == 0:
+                    self.__validMoves.remove(move)
+                return [i, move]
+                
+    def turn(self, move):
+        # This method is used for a player to take a turn
+        # Returns True if move is valid, otherwise False
+        try:
+            move = int(move)
+        
+        except:
+            return False
 
-		if self.__checkVertical(x):
-			return True, "vertical"
+        if move in self.__validMoves:
+            y, x = self.__playMove(move)
 
-		# if self.__checkDiagonal(x,y):
+            self.__isWin, self.__winType = self.__checkWin(x, y)
 
-		# 	return True, "Left Diagonal"
+            self.__winner = self.__player
+            self.__player = 2 if self.__player == 1 else 1
 
-		# 	return True, "Right Diagonal"
+            return True
 
-		# return False, "No win"
+        else:
+            return False
 
+    def getWin(self):
+        return self.__isWin
 
-		
-	def __checkHorizontal(self, y):
-		inRow = 0 
-		for i in range(self.__boardSize[y][i]):
-			inRow = inRow + 1 if self.__board[y][i] == self.__player else 0
-			if inRow == 4:
-				return True
-		return False
+    def getWinType(self):
+        return self.__winType
 
-	def __checkVertical(self, x):
-		inRow = 0
-		for i in range(self.__boardSize[i][x]):
-			inRow = inRow + 1 if self.__board[i][x] == self.__player else 0
-			if inRow == 4:
-				return True
-		return False
+    def getWinner(self):
+        return self.__winner
 
-	# def __checkDiagonal(x,y):
+    def getValidMoves(self):
+        return self.__validMoves
 
+    def getWinStatus(self):
+        return self.__isWin
 
+    def getCurrentPlayer(self):
+        return self.__player
 
-		# Then check vertical
+    def getBoard(self):
+        return self.__board
 
-		# Finally check diagonals 
+    def showBoard(self):
+        # This method is only used for the text version of the game
+        
+        halfTxt = 10  - self.__boardSize[1]
+        title = '\n {}Connect 4!{}\n\n'.format(' '*halfTxt, ' '*halfTxt)
+        board = '  ' + ' '.join([str(i) for i in range(self.__boardSize[1])]) + '\n'
+        
+        for row in self.__board:
+            board += ' |'
+    
+            for i in row:
+                
+                if i == 0:
+                    board += ' '
+                else:
+                    board += str(i)
+                
+                board += '|'
+            board += '\n'
 
-	
-
-	def __playMove(self, move):
-
-
-		# This method takes in a move and plays it on the board if it is valid
-		try:
-			# Check if the move is valid
-			move = int(move) - 1
-			if move >= 0 and move <= self.__boardSize[1]:
-				print('hello')
-				# Ignore the loop for checking if the column is already full.
-				if self.__board[0][move] == ' ':
-					# Find the last empty pos in column and put tkn there
-					for i in range(self.__boardSize[0], -1, -1): #Bottom up
-						print(i)
-						if self.__board[i][move] == ' ':
-
-							self.__board[i][move] = self.__player
-							print('hello')
-							
-							if self.__checkWin(move, i):
-								self.__isWin = True
-							
-							return (True, move)
-				else:
-					
-					print("Move {} is invalid, column is full.".format(str(move + 1)))
-					return (False,0)
-			else:
-				
-				print("Move {} is invalid, out of board range.".format(str(move + 1)))
-				return (False, 0)
-
-		except: 
-			#If invalid move entered, notify user and return False
-			print("Move {} is invalid.".format(move))
-			return (False, 0)
-
-	def turn(self, move):
-		#Change turn to take in move as an argument so that a computer player can play
-
-		while True:
-
-			m = input("Player {} Enter Move >".format(self.__player))
-			pMove = self.__playMove(m)
-			print(pMove)
-			
-			if pMove[0]:
-				move = pMove[1]
-				break
-		
-		win = self.__checkWin()
-		self.__isWin = win[0]
-		
-		print(win)
-
-		if self.__isWin():
-			print("Player {}".format(self.__player))
-			return True
-
-		elif self.__remainingMoves == 0:
-			print("Game Is A Tie! No Moves Remaining.")
-			return True
-
-		else:
-			self.__player = 'R' if self.__player == 'Y' else 'R'
-			self.__remainingMoves -= 1 
-			return False
-
-
-
-	def startGame(self):
-		self.__makeBoard()
-
-	def getBoard(self):
-		return self.__board
-
-	def getWin(self):
-		return self.__isWin
-
-	def getPlayer(self):
-		return self.__player
-
-	def getRemainingMoves(self):
-		return self.__remainingMoves
+        print(title + board)
 
 
 
 
-
-
-def main():
-	c4 = Connect4()
-	c4.startGame()
-
-	while True:
-
-		c4.clearScreen()
-		c4.showBoard()
-
-		gameOver = c4.turn()
-		
-		if gameOver:
-			break
-
-	
-
-
-
-
-
-
-
-
-
-if __name__ == '__main__':
-	main()
