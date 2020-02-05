@@ -4,7 +4,7 @@ import sys
 import os
 
 
-CLEARTOGGLE = True
+CLEARTOGGLE = True  
 DEBUG_MODE = True
 def main():
   
