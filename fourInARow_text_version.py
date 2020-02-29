@@ -2,20 +2,30 @@ import fourInARow
 import easyComputer as eC
 import sys
 import os
+import time
+from Computer_Player import FourInARow_AB
 
 
-CLEARTOGGLE = True  
+CLEARTOGGLE = False  
 DEBUG_MODE = True
 def main():
-  
+    
     while True:
         
         mode = modeSelection()
         game = fourInARow.Four_In_A_Row()
+        
+        if mode == 'easy' or mode == '2easy':
+            depth = 3
+        elif mode == 'hard' or mode == '2hard':
+            depth = 500
+        else:
+            depth = 0 
 
         while True:
             clearScreen(CLEARTOGGLE)
             game.showBoard()
+            computer = FourInARow_AB(depth)
             
             if mode == 'player':
                 playerTurn(game)
@@ -24,17 +34,25 @@ def main():
                 if game.getCurrentPlayer() == 1:
                     playerTurn(game)
                 else:
-                    validMoves = game.getValidMoves()
-                    computerTurn(game, validMoves, 'e')
+                    game.turn(eC.easyComputer(game.getValidMoves()))
 
-            elif mode == 'ysea':
+            elif mode == '2easy':
                 if game.getCurrentPlayer() == 2:
                     playerTurn(game)
                 else:
-                    validMoves = game.getValidMoves()
-                    computerTurn(game, validMoves, 'e')
+                    #<Computer turn>
+                    game.turn(eC.easyComputer(game.getValidMoves()))
 
-            elif mode == 'hard' or mode == 'drah':
+            elif mode == 'hard':
+                if game.getCurrentPlayer() == 1:
+                    playerTurn(game)
+                else:
+                    start = time.time()
+                    game.turn(computer.findMove(game))
+                    print('Turn Time:', time.time() - start)
+
+
+            elif mode == '2hard':
                 print("Error Mode not Implemeted")
                 break
 
@@ -64,13 +82,6 @@ def playerTurn(game):
         else:
             print('Error Invalid Move!')
 
-def computerTurn(game, validMoves, cType):
-    if cType == 'e':
-        move = eC.easyComputer(validMoves)
-        game.turn(move)
-    else:
-        pass
-
 
 def modeSelection():
     clearScreen(True)
@@ -88,11 +99,11 @@ def modeSelection():
             elif x == 2: 
                 return 'easy'
             elif x == 3:
-                return 'ysea'
+                return '2easy'
             elif x == 4:
                 return 'hard'
             elif x == 5:
-                return 'drah'
+                return '2hard'
             elif x == 6:
                 sys.exit()
             else:

@@ -16,8 +16,7 @@ class Four_In_A_Row(object):
         self.isWin = False
         self.winType = None
         self.winner = None
-        self.validMoves = [i for i in range(self.boardSize[1])]
-        self.previousMove = None
+        self.previousYX = None
 
 
     def resetGame(self):
@@ -26,14 +25,13 @@ class Four_In_A_Row(object):
         self.isWin = False
         self.winType = None
         self.winner = None
-        self.validMoves = [i for i in range(self.boardSize[1])]
+        
 
     def copyState(self):
         cBoard = Four_In_A_Row()
         cBoard.setCurrentPlayer(self.__player)
         cBoard.isWin = self.isWin
         cBoard.winner = self.winner
-        cBoard.validMoves = self.validMoves
         cBoard.winType = self.winType
         cBoard.setBoard(np.copy(self.__board))
         return cBoard
@@ -45,16 +43,16 @@ class Four_In_A_Row(object):
         diagonalLR = self.__board.diagonal(x - y)
         diagonalRL = np.fliplr(self.__board).diagonal(abs(x-self.boardSize[0]) - y)
 
-        if self.checkInRow(horizontal):
+        if self.__checkInRow(horizontal):
             return True, 'horizontal'
         
-        elif self.checkInRow(vertical):
+        elif self.__checkInRow(vertical):
             return True, 'vertical'
         
-        elif self.checkInRow(diagonalLR):
+        elif self.__checkInRow(diagonalLR):
             return True, 'LR Diagonal'
 
-        elif self.checkInRow(diagonalRL):
+        elif self.__checkInRow(diagonalRL):
             return True, 'RL diagonal'
 
         return False, None
@@ -73,9 +71,9 @@ class Four_In_A_Row(object):
         for i in range(self.boardSize[0]-1, -1, -1):
             if self.__board[i][move] == 0:
                 self.__board[i][move] = self.__player
-                if i == 0:
-                    self.validMoves.remove(move)
-                self.previousYX = [i, move]
+
+                self.previousYX = [i,move]
+
                 return [i, move]
                 
     def turn(self, move):
@@ -86,8 +84,8 @@ class Four_In_A_Row(object):
         
         except:
             return False
-
-        if move in self.validMoves:
+        print(self.getValidMoves())
+        if move in self.getValidMoves():
             y, x = self.playMove(move)
 
             self.isWin, self.winType = self.checkWin(x, y)
@@ -113,8 +111,8 @@ class Four_In_A_Row(object):
 
     def getValidMoves(self):
         valid = []
-        for i in self.__board[0]:
-            if i == 0:
+        for i in range(self.boardSize[1]):
+            if self.__board[0][i] == 0:
                 valid.append(i)
         return valid
 
