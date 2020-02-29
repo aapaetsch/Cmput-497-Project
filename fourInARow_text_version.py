@@ -1,4 +1,4 @@
-import connect4
+import fourInARow
 import easyComputer as eC
 import sys
 import os
@@ -11,7 +11,7 @@ def main():
     while True:
         
         mode = modeSelection()
-        game = connect4.Connect4()
+        game = fourInARow.Four_In_A_Row()
 
         while True:
             clearScreen(CLEARTOGGLE)
@@ -74,7 +74,7 @@ def computerTurn(game, validMoves, cType):
 
 def modeSelection():
     clearScreen(True)
-    print('Connect 4!\n1: Player vs Player\
+    print('Four In A Row!\n1: Player vs Player\
         \n2: Player vs Easy Computer\n3: Easy Computer vs Player\
         \n4: Player vs Hard Computer\n5: Hard Computer vs Player\
         \n6: Quit')
