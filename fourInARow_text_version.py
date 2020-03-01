@@ -18,14 +18,15 @@ def main():
         if mode == 'easy' or mode == '2easy':
             depth = 3
         elif mode == 'hard' or mode == '2hard':
-            depth = 500
+            depth = 20
         else:
             depth = 0 
+
+        computer = FourInARow_AB(depth)
 
         while True:
             clearScreen(CLEARTOGGLE)
             game.showBoard()
-            computer = FourInARow_AB(depth)
             
             if mode == 'player':
                 playerTurn(game)
@@ -34,14 +35,20 @@ def main():
                 if game.getCurrentPlayer() == 1:
                     playerTurn(game)
                 else:
-                    game.turn(eC.easyComputer(game.getValidMoves()))
+                    # game.turn(eC.easyComputer(game.getValidMoves()))
+                    start = time.time()
+                    game.turn(computer.findMove(game))
+                    print('Turn Time:', time.time() - start)
 
             elif mode == '2easy':
                 if game.getCurrentPlayer() == 2:
                     playerTurn(game)
                 else:
                     #<Computer turn>
-                    game.turn(eC.easyComputer(game.getValidMoves()))
+                    # game.turn(eC.easyComputer(game.getValidMoves()))
+                    start = time.time()
+                    game.turn(computer.findMove(game))
+                    print('Turn Time:', time.time() - start)
 
             elif mode == 'hard':
                 if game.getCurrentPlayer() == 1:

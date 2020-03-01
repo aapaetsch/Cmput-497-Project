@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import os
 import random
-
+import time
 
 class Four_In_A_Row(object):
 
@@ -49,11 +49,13 @@ class Four_In_A_Row(object):
         elif self.__checkInRow(vertical):
             return True, 'vertical'
         
-        elif self.__checkInRow(diagonalLR):
-            return True, 'LR Diagonal'
+        elif len(diagonalLR) >= 4: 
+            if self.__checkInRow(diagonalLR):
+                return True, 'LR Diagonal'
 
-        elif self.__checkInRow(diagonalRL):
-            return True, 'RL diagonal'
+        elif len(diagonalRL) >= 4:
+            if self.__checkInRow(diagonalRL):
+                return True, 'RL diagonal'
 
         return False, None
 
@@ -67,14 +69,11 @@ class Four_In_A_Row(object):
 
     def playMove(self, move):
         # This method takes in a move and plays it on the board
-
-        for i in range(self.boardSize[0]-1, -1, -1):
-            if self.__board[i][move] == 0:
-                self.__board[i][move] = self.__player
-
-                self.previousYX = [i,move]
-
-                return [i, move]
+        y = np.where(self.__board[:,move]==0)[0][-1]
+        self.__board[y][move] = self.__player
+        self.previousYX = [y,move]
+        return [y,move]
+        
                 
     def turn(self, move):
         # This method is used for a player to take a turn
