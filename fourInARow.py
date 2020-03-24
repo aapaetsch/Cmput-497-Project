@@ -83,7 +83,7 @@ class Four_In_A_Row(object):
         
         except:
             return False
-        print(self.getValidMoves())
+
         if move in self.getValidMoves():
             y, x = self.playMove(move)
 
@@ -109,11 +109,7 @@ class Four_In_A_Row(object):
         return self.winner
 
     def getValidMoves(self):
-        valid = []
-        for i in range(self.boardSize[1]):
-            if self.__board[0][i] == 0:
-                valid.append(i)
-        return valid
+        return np.where(self.__board[0] == 0)[0]
 
     def getWinStatus(self):
         return self.isWin

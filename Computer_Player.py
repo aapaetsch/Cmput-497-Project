@@ -4,6 +4,7 @@ import random
 import time
 import re
 import numpy as np
+import math
 
 class TranspositionTable(object):
     def __init__(self):
@@ -23,9 +24,32 @@ class TranspositionTable(object):
 class FourInARow_AB:
 	def __init__(self, maxDepth):
 		self.__maxDepth = maxDepth
+		self.heuristic = {0:0,1:0,2:0,3:0,4:0,5:0,6:0}
+		self.playMoveTimes = []
+		self.moveOrderTimes = []
+		self.evalTimes = []
+		self.terminalTime = []
+		self.inRowTime = []
+		self.addTime = []
 		#<---Give the state as a copy of the board--->
 		#<---Give it access to check win and move coords--->
 		#<--access to the current player--->
+	def showTiming(self):
+		self.calcTiming(self.playMoveTimes, 'Play Move:')
+		self.calcTiming(self.moveOrderTimes, 'Move Order:')
+		self.calcTiming(self.evalTimes, 'Evaluation:')
+		self.calcTiming(self.inRowTime, 'InRow:')
+		self.calcTiming(self.terminalTime, 'Terminal State:')
+		self.playMoveTimes = []
+		self.moveOrderTimes = []
+		self.evalTimes = []
+		self.terminalTime = []
+		self.inRowTime = []
+
+
+	def calcTiming(self, arr, string):
+		print(string, sum(arr), 'AVG:', sum(arr)/len(arr))
+
 
 	def findMove(self, gameState):
 		#<---Creates the zobrist Array and sets the current hash--->
@@ -38,11 +62,11 @@ class FourInARow_AB:
 		beta = float("Inf")
 		value, move = self.alphaBetaGetMove(alpha, beta, self.__maxDepth, rootState)
 		print('Best Move:', move, '\tValue:', value)
-	
+		self.showTiming()
 		return move if move != None else random.choice(rootState.getValidMoves())
 
 	def alphaBetaGetMove(self, alpha, beta, depth, gameState):
-		legalMoves = gameState.getValidMoves()
+		legalMoves = self.getMoveOrder(gameState.getValidMoves())
 		terminalState, points = self.isTerminal(legalMoves, gameState)
 		bestMove = None
 		self.nodes = 0 
@@ -52,14 +76,20 @@ class FourInARow_AB:
 		#<---we should try move 3 first (center is strongest)
 		if 3 in legalMoves:
 			legalMoves.remove(3)
-			legalMoves = [3] + legalMoves
+			legalMoves.append(3)
 
-		for move in legalMoves:
+
+		while legalMoves:
+			move = legalMoves.pop()
 			self.nodes += 1
 			start = time.time()
 			oldHash = self.hash
 			previousYX = gameState.previousYX
+			#<---Timing--->
+			s = time.time()
 			y, x = gameState.playMove(move)
+			self.playMoveTimes.append(time.time()-s)
+			#<---End Timing--->
 			self.updateHash(self.hash, self.zobristArr[y][x][gameState.getCurrentPlayer()], self.zobristArr[y][x][0])
 			self.changePlayer(gameState)
 
@@ -73,7 +103,11 @@ class FourInARow_AB:
 			self.undo(y, x, gameState, previousYX)
 
 			if value >= beta:
+				d = self.__maxDepth - (self.__maxDepth - depth)
+				self.heuristic[move] += pow(2,d)
 				return beta, bestMove
+
+			legalMoves = self.getMoveOrder(legalMoves)
 
 		return alpha, bestMove
 
@@ -82,7 +116,7 @@ class FourInARow_AB:
 		if result !=  None:
 			return result
 
-		legalMoves = gameState.getValidMoves()
+		legalMoves = self.getMoveOrder(gameState.getValidMoves())
 		terminalState, points = self.isTerminal(legalMoves, gameState)
 		#<---Is terminal needs a state--->
 		if terminalState:
@@ -92,19 +126,24 @@ class FourInARow_AB:
 			return self.evaluation(gameState)
 
 
-		for move in legalMoves:
-			# move = legalMoves.pop()
+		while legalMoves:
+			move = legalMoves.pop()
 			self.nodes += 1
 			#<---Play the move on a copy of the board
 			oldHash = self.hash
 			#<---Update the hash
 			previousYX = gameState.previousYX
+			#<---Timing--->
+			s = time.time()
 			y, x = gameState.playMove(move)
+			self.playMoveTimes.append(time.time()-s)
+			#<---End Timing--->
 			self.updateHash(self.hash, self.zobristArr[y][x][gameState.getCurrentPlayer()], self.zobristArr[y][x][0])
 			#<---UPDATE THE CURRENT PLAYER
 			self.changePlayer(gameState)
 		
 			value = -self.alphaBetaDL(-beta, -alpha, depth - 1, gameState)
+			d = self.__maxDepth - (self.__maxDepth - depth)
 
 			if value > alpha:
 				alpha = value
@@ -112,13 +151,25 @@ class FourInARow_AB:
 			#<---Revert to previous hash and undo move from board
 			self.hash = oldHash
 			self.undo(y, x, gameState, previousYX)
-			if self.nodes % 100000 == 0:
-				print(self.nodes)
-			if value >= beta:
 
+			if value >= beta:
+				self.heuristic[move] += pow(2,d)
 				return self.updateTT(beta)
 
+			if d <= 9:
+				legalMoves = self.getMoveOrder(legalMoves)
+
 		return self.updateTT(alpha)
+
+	def getMoveOrder(self, moves):
+		s = time.time()
+		order = []
+		for m in moves:
+			order += [[m,self.heuristic[m]]]
+		order.sort(key=lambda x:x[1])
+		moves = [x[0] for x in order]
+		self.moveOrderTimes.append(time.time()-s)
+		return moves
 
 	def changePlayer(self, gameState):
 		gameState.setCurrentPlayer( 3 - gameState.getCurrentPlayer())
@@ -129,7 +180,7 @@ class FourInARow_AB:
 		gameState.previousYX = previous
 
 	def isTerminal(self, legalMoves, gameState):
-
+		s = time.time()
 		#<---If you can win + 10000            
 		if gameState.previousYX != None:
 			#<----If we are in a terminal state--->
@@ -137,16 +188,16 @@ class FourInARow_AB:
 			isWin, winType = gameState.checkWin(gameState.previousYX[1],gameState.previousYX[0])
 			self.changePlayer(gameState)
 			if isWin:
-				return True, 1
+				return True, 1000
 			
 			elif len(legalMoves) == 0:
 				return True, 0 
-		
+
+		self.terminalTime.append(time.time()-s)
 		return False, None
 
-	# def orderLegalMoves()
-
 	def evaluation(self, gameState):
+		s = time.time()
 		#1000 for 4 in a row
 		#50 for 3 in a row
 		#10 for 2 in a row
@@ -180,11 +231,12 @@ class FourInARow_AB:
 			playerScores = self.addToScore(playerScores, p2)
 			opponentScores = self.addToScore(opponentScores, op2)
 					
-		score = self.calculateScore(playerScores) - self.calculateScore(opponentScores)
-
+		score = self.calculateScore(playerScores, False) - self.calculateScore(opponentScores, True)
+		self.evalTimes.append(time.time()-s)
 		return score
 
 	def getInRow(self, arr, player, opponent):
+		s = time.time()
 		inRowCount = {2:0,3:0,4:0}
 		inRowCountOpp = {2:0,3:0,4:0}
 		inRow = 0
@@ -239,20 +291,21 @@ class FourInARow_AB:
 				inRowCount[inRow] += 1
 			elif previous == opponent:
 				inRowCountOpp[inRow] += 1
-
+		self.inRowTime.append(time.time() - s)
 		return inRowCount, inRowCountOpp
 
 
-	def calculateScore(self, scoreDict):
-		score = ((scoreDict[4] * 10000) + (scoreDict[3] * 50) + (scoreDict[2] * 5))
+	def calculateScore(self, scoreDict, isOpponent):
+		score = ((scoreDict[4] * 1000) + (scoreDict[3] * 10 if isOpponent else 5) + (scoreDict[2] * 2))
 		return score
 
 	def addToScore(self, total, lineScore):
+		s = time.time()
 		total[2] += lineScore[2]
 		total[3] += lineScore[3]
 		total[4] += lineScore[4]
+		self.addTime.append([time.time()-s])
 		return total
-
 
 
 	def zobristinit(self, gameState):
@@ -261,7 +314,7 @@ class FourInARow_AB:
 		for i in range(gameState.boardSize[0]):
 			self.zobristInnerArr = []
 			for j in range(gameState.boardSize[1]):
-				self.zobristInnerArr.append([random.getrandbits(64) for _ in range(3)])
+				self.zobristInnerArr.append([random.getrandbits(128) for _ in range(3)])
 			self.zobristArr.append(self.zobristInnerArr)
 
 		board = gameState.getBoard()

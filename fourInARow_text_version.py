@@ -4,7 +4,7 @@ import sys
 import os
 import time
 from Computer_Player import FourInARow_AB
-
+from computer_boolean import FourInARow_Bool_MinMax
 
 CLEARTOGGLE = False  
 DEBUG_MODE = True
@@ -13,16 +13,23 @@ def main():
     while True:
         
         mode = modeSelection()
+        if mode == 'quit':
+            sys.exit()
         game = fourInARow.Four_In_A_Row()
         
         if mode == 'easy' or mode == '2easy':
             depth = 3
         elif mode == 'hard' or mode == '2hard':
-            depth = 20
+            #10 takes 14 sec
+            #11 takes 111
+            depth = 10
         else:
             depth = 0 
 
         computer = FourInARow_AB(depth)
+        # computer = FourInARow_Bool_MinMax(depth)
+
+        
 
         while True:
             clearScreen(CLEARTOGGLE)
@@ -62,6 +69,7 @@ def main():
             elif mode == '2hard':
                 print("Error Mode not Implemeted")
                 break
+
 
 
             if game.getWin():
@@ -111,8 +119,10 @@ def modeSelection():
                 return 'hard'
             elif x == 5:
                 return '2hard'
+            # elif x == 6:
+            #     return 'cc'
             elif x == 6:
-                sys.exit()
+                return 'quit'
             else:
                 print('Error Invalid Mode!')
         except:
