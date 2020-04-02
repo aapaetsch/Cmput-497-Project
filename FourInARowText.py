@@ -6,14 +6,14 @@ from Computer_Player import FourInARow_AB
 
 CLEARTOGGLE = False
 DEBUG_MODE = True
-
+previousMove = None
 def game():
-	
+	global previousMove
 	while True:
 		
 		mode, p1, difficulty = modeSelection()
 		checkQuit(mode)
-
+		
 
 		game = fourInARow.Four_In_A_Row()
 
@@ -22,19 +22,21 @@ def game():
 			while True:
 				clearScreen(CLEARTOGGLE)
 				game.showBoard()
+				print('Previous Move > {}'.format(previousMove))
 				playerTurn(game)
 				if checkWin(game):
 					break
 
 		elif mode == 2:
 			#Player vs. Computer
+			showScores = showStats()
 			depth = getDepth(difficulty)
 			cpu = FourInARow_AB(depth)
 		
 			while True:
 				clearScreen(CLEARTOGGLE)
 				game.showBoard()
-
+				print('Previous Move > {}'.format(previousMove))
 				if p1 == 1:
 					playerTurn(game) if game.getCurrentPlayer() == 1 else computerTurn(game, cpu)
 
@@ -46,6 +48,7 @@ def game():
 					
 
 		elif mode == 3:
+			showScores = showStats()
 			depth1 = getDepth(difficulty[0])
 			cpu1 = FourInARow_AB(depth1)
 
@@ -55,11 +58,13 @@ def game():
 			while True:
 				clearScreen(CLEARTOGGLE)
 				game.showBoard()
-
+				print('Previous Move > {}'.format(previousMove))
 				computerTurn(game, cpu1) if game.getCurrentPlayer() == 1 else computerTurn(game, cpu2)
 
 				if checkWin(game):
 					break
+
+				time.sleep(1)
 		
 		if input('Play Again? (y/n) > ').lower() != 'y':
 			break
@@ -67,7 +72,7 @@ def game():
 
 
 def playerTurn(game):
-	
+	global previousMove
 	while True:
 		move = input('Player {} Turn > '.format(game.getCurrentPlayer()))
 		
@@ -75,12 +80,18 @@ def playerTurn(game):
 			sys.exit()
 		
 		elif game.turn(move):
+			previousMove = move
 			break
 		
 		print('Error Invalid Move!')
 
+
 def computerTurn(game, cpu):
-	game.turn(cpu.findMove(game))
+	global previousMove
+	move = cpu.findMove(game)
+	cpu.showScores()
+	game.turn(move)
+	previousMove = move
 
 def getDepth(diff):
 	
@@ -165,6 +176,10 @@ def clearScreen(toggle):
 def checkQuit(mode):
 	if mode == 4:
 		sys.exit()
+
+def showStats():
+	x = input("Would you like to see the scores for each computer move (y/n) > ").lower()
+	return True if x == 'y' else False
 
 if __name__ == '__main__':
 	game()

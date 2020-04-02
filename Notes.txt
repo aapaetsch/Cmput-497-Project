@@ -68,3 +68,6 @@
 		- see link on fb 
 		- += 2^D for the weight 
 		- update the heuristic whenever we find a move results in a beta cut 
+
+- Has a mode that allows you to see the values that the computer gets for each move search
+

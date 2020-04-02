@@ -26,36 +26,10 @@ class TranspositionTable(object):
 class FourInARow_AB:
 	def __init__(self, maxDepth):
 		self.__maxDepth = maxDepth
-		self.playMoveTimes = []
-		self.moveOrderTimes = []
-		self.evalTimes = []
-		self.terminalTime = []
-		self.inRowTime = []
-		self.addTime = []
-
-		
-
+		self.MoveScores = {}
 		with open('scores.json', 'r') as f:
 			for line in f:
 				self.score = dict(json.loads(line))
-
-		#<---Give the state as a copy of the board--->
-		#<---Give it access to check win and move coords--->
-		#<--access to the current player--->
-	def showTiming(self):
-		self.calcTiming(self.playMoveTimes, 'Play Move:')
-		self.calcTiming(self.moveOrderTimes, 'Move Order:')
-		self.calcTiming(self.evalTimes, 'Evaluation:')
-		self.calcTiming(self.terminalTime, 'Terminal State:')
-		self.playMoveTimes = []
-		self.moveOrderTimes = []
-		self.evalTimes = []
-		self.terminalTime = []
-		self.inRowTime = []
-
-
-	def calcTiming(self, arr, string):
-		print(string, sum(arr), 'AVG:', sum(arr)/len(arr))
 
 
 	def findMove(self, gameState):
@@ -63,21 +37,17 @@ class FourInARow_AB:
 		self.tt = TranspositionTable()
 		rootState = gameState.copyState()
 		self.ComputerPlayer = rootState.getCurrentPlayer()
-		print('Computer: {}'.format(self.ComputerPlayer))
+		# print('Computer: {}'.format(self.ComputerPlayer))
+
 		self.zobristinit(rootState)
 		self.heuristic = {0:0,1:0,2:0,3:0,4:0,5:0,6:0}	
-		self.boards = []
-		self.boardScores = []
-		self.boardMoves = []
+		self.MoveScores = {}
+		
+		
 		alpha = -float('Inf')
 		beta = float("Inf")
 		value, move = self.alphaBetaGetMove(alpha, beta, self.__maxDepth, rootState)
-		print('Best Move:', move, '\tValue:', value)
-		self.showTiming()
-
-		#<---Showing the possible boards--->
-		self.printBoards()
-
+		# print('Best Move:', move, '\tValue:', value)
 
 		return move if move != None else random.choice(rootState.getValidMoves())
 
@@ -97,23 +67,19 @@ class FourInARow_AB:
 			start = time.time()
 			oldHash = self.hash
 			previousYX = gameState.previousYX
-			#<---Timing--->
-			s = time.time()
 			y, x = gameState.playMove(move)
-			self.playMoveTimes.append(time.time()-s)
-			#<---End Timing--->
+
 			self.updateHash(self.hash, self.zobristArr[y][x][gameState.getCurrentPlayer()], self.zobristArr[y][x][0])
 			self.changePlayer(gameState)
 
 			value = -self.alphaBetaDL( -beta, -alpha, depth - 1, gameState)
-			print('Value:',value)
-			print('Move:', move, 'Time:', time.time() - start)
+			# print('Value:',value)
+			# print('Move:', move, 'Time:', time.time() - start)
 			if value > alpha:
 				alpha = value
 				bestMove = move
 
-			self.saveScores(np.copy(gameState.getBoard()), value, move)
-
+			self.MoveScores[str(move)] = str(value)
 
 			self.hash = oldHash
 			self.undo(y, x, gameState, previousYX)
@@ -127,10 +93,15 @@ class FourInARow_AB:
 		return alpha, bestMove
 
 	def alphaBetaDL(self, alpha, beta, depth, state):
-		gameState = state.copyState()
+		
 		result = self.tt.lookup(self.hash)
 		if result !=  None:
 			return result
+
+		gameState = state.copyState()
+		d = self.__maxDepth - (self.__maxDepth - depth)
+
+		
 
 		legalMoves = self.getMoveOrder(gameState.getValidMoves())
 		#<---Is terminal needs a state--->
@@ -143,13 +114,9 @@ class FourInARow_AB:
 			oldHash = self.hash
 			#<---Update the hash
 			previousYX = gameState.previousYX
-			#<---Timing--->
-			s = time.time()
 			y, x = gameState.playMove(move)
-			self.playMoveTimes.append(time.time()-s)
-			#<---End Timing--->
+
 			self.updateHash(self.hash, self.zobristArr[y][x][gameState.getCurrentPlayer()], self.zobristArr[y][x][0])
-			#<---UPDATE THE CURRENT PLAYER
 			self.changePlayer(gameState)
 		
 			value = -self.alphaBetaDL(-beta, -alpha, depth - 1, gameState)
@@ -173,11 +140,7 @@ class FourInARow_AB:
 
 
 	def getMoveOrder(self, moves):
-		s = time.time()
-		moves = sorted([m for m in moves], key = lambda m: self.heuristic[m])
-		self.moveOrderTimes.append(time.time()-s)
-		return moves
-
+		return sorted([m for m in moves], key = lambda m: self.heuristic[m])
 
 	def changePlayer(self, gameState):
 		gameState.setCurrentPlayer( 3 - gameState.getCurrentPlayer())
@@ -188,24 +151,22 @@ class FourInARow_AB:
 		gameState.previousYX = previous
 
 	def isTerminal(self, legalMoves, gameState):
-		s = time.time()
 		#<---If you can win + 10000            
 		if gameState.previousYX != None:
 			#<----If we are in a terminal state--->
 			self.changePlayer(gameState)
 			isWin, winType = gameState.checkWin(gameState.previousYX[1],gameState.previousYX[0])
 			self.changePlayer(gameState)
+
 			if isWin:
 				return True
 			
 			elif len(legalMoves) == 0:
 				return True 
 
-		self.terminalTime.append(time.time()-s)
 		return False
 
 	def evaluation(self, gameState):
-		start = time.time()
 		cp = gameState.getCurrentPlayer()
 		board = gameState.getBoard()
 		p1Score = 0 
@@ -229,15 +190,15 @@ class FourInARow_AB:
 		p1Score += s[0]
 		p2Score += s[1]
 
-		self.evalTimes.append(time.time() - start)
-		if cp == 1:
-			score = p1Score - p2Score * 1.5
-		else:
-			score = p2Score - p1Score * 1.5
-		
+	
 		if self.ComputerPlayer == 1:
-			return -score 
-		return score
+			return p1Score - p2Score * 1.5
+		return p2Score - p1Score * 1.5
+
+		
+
+
+
 		
 
 
@@ -282,38 +243,19 @@ class FourInARow_AB:
 	def getAddress(self, arr):
 		return str(list(arr))
 
-	def printBoards(self):
-		title = '\n Possible Moves.\n'
-		board = ''
-		
-		srange = [[0,3],[3,6],[6,7]]
-		for x in range(3):
-			board += ('  ' + ' '.join([str(i) for i in range(7)])+'\t\t')* (3 if x < 2 else 1)   + '\n'
-			c = 0 
+	def showScores(self):
+		text = ''
+		c = 1 
+		for key in self.MoveScores.keys():
+			text += 'Move: {}, Score: {}\t'.format(key,self.MoveScores[key])
 
-			for y in range(6):
-
-				for b in range(srange[x][0],srange[x][1]):
-					try:
-						row = self.boards[b][y]
-						board += ' |'
-						for j in row:
-							if j == 0:
-								board += ' '
-							else:
-								board += str(j)
-							board += '|'
-						board += '\t'
-					except:
-						continue
-				board += '\n'
-			for _ in range(1 if x == 2 else 3):
-				try:
-					board += '  Score: {} Move: {}\t'.format(self.boardScores.pop(0), self.boardMoves.pop(0))
-				except:
-					continue
-			board += '\n\n'
-		print(title + board)
+			if c == 3:
+				text += '\n'
+				c = 1 
+			else:
+				c += 1
+		print(text)
+			
 
 
 	def saveScores(self, board, value, move):
