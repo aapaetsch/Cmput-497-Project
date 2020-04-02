@@ -96,11 +96,11 @@ def computerTurn(game, cpu):
 def getDepth(diff):
 	
 	if diff == 1:
-		return 1
+		return 2
 	elif diff == 2:
-		return 5
+		return 4
 	elif diff == 3:
-		return 9
+		return 8
 
 
 def checkWin(game):

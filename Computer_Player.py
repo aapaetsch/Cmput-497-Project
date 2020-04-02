@@ -190,16 +190,9 @@ class FourInARow_AB:
 		p1Score += s[0]
 		p2Score += s[1]
 
-	
 		if self.ComputerPlayer == 1:
-			return p1Score - p2Score * 1.5
-		return p2Score - p1Score * 1.5
-
-		
-
-
-
-		
+			return p1Score - p2Score * 1.1
+		return p2Score - p1Score * 1.1
 
 
 	def diagonalEvaluation(self, board):
