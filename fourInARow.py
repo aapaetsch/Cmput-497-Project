@@ -127,7 +127,6 @@ class Four_In_A_Row(object):
     def showBoard(self):
         # This method is only used for the text version of the game
         
-        
         title = '\n Four In A Row!\n\n'
         board = '  ' + ' '.join([str(i) for i in range(self.boardSize[1])]) + '\n'
         

@@ -119,7 +119,6 @@ class FourInARow_AB:
 			self.undo(y, x, gameState, previousYX)
 
 			if value >= beta:
-				
 				self.heuristic[move] += pow(2,d)
 				return beta, bestMove
 
@@ -133,11 +132,7 @@ class FourInARow_AB:
 		if result !=  None:
 			return result
 
-		d = self.__maxDepth - (self.__maxDepth - depth)	
-		if d <= 9:
-			legalMoves = self.getMoveOrder(gameState.getValidMoves())
-		else:
-			legalMoves = gameState.getValidMoves()
+		legalMoves = self.getMoveOrder(gameState.getValidMoves())
 		#<---Is terminal needs a state--->
 		if self.isTerminal(legalMoves, gameState) or depth == 0:
 			return self.evaluation(gameState)
@@ -171,8 +166,7 @@ class FourInARow_AB:
 				self.heuristic[move] += pow(2,d)
 				return self.updateTT(beta)
 
-			if d <= 9:
-				legalMoves = self.getMoveOrder(legalMoves)
+			legalMoves = self.getMoveOrder(legalMoves)
 
 		return self.updateTT(alpha)
 

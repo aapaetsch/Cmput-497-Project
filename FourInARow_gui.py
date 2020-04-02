@@ -28,7 +28,10 @@ class FourInARowGui(tk.Frame):
         self.__drawBoard(root)
         self.__gameStarted = False
         self.__allowClick = True
-        
+
+        # self._CurrentPlayer = tk.StringVar()
+        # self._CurrentPlayer.set('Yellow')
+                
 
         
 
@@ -84,7 +87,6 @@ class FourInARowGui(tk.Frame):
             try:
                 move = self.__canvas.gettags(item)[0]
                 self.__placeTkn(move)
-                self.__computerTurn()
             except:
                 pass
 
@@ -95,10 +97,7 @@ class FourInARowGui(tk.Frame):
             self.__canvas.itemconfig(i, fill='white')
         self.__menu.entryconfigure(4, state='active')
         self.__menu.entryconfigure(6, state='active')
-        self.__gameStarted == False
-
-
-
+        self.__gameStarted = False
         
 
     def __placeTkn(self,move):
@@ -130,12 +129,8 @@ class FourInARowGui(tk.Frame):
         self.__menu.entryconfigure(4, state='disabled')
         self.__menu.entryconfigure(6, state='disabled')
         self.__gameStarted = True
-        
 
-        if self.__p1.get().split(' ')[1] == 'Computer' and self.__p2.get().split(' ')[1] == 'Computer':
-            self.__gameType = 'cc'
-            print('Triggered')
-            self.__computer_vs_Computer()
+
 
 
 
@@ -182,7 +177,7 @@ class FourInARowGui(tk.Frame):
             for j in range(7):              
                 tag = j
                 self.__canvas.create_oval(x0Tkn+(j*70), y0Tkn+(i*70), x1Tkn+(j*70), y1Tkn+(i*70), fill='white', tags=(tag,'token'))
-
+        # self.__canvas.create_text()
         self.__canvas.pack()
 
 

@@ -7,9 +7,6 @@ from Computer_Player import FourInARow_AB
 CLEARTOGGLE = False
 DEBUG_MODE = True
 
-
-
-
 def game():
 	
 	while True:
@@ -90,7 +87,7 @@ def getDepth(diff):
 	if diff == 1:
 		return 1
 	elif diff == 2:
-		return 6
+		return 5
 	elif diff == 3:
 		return 9
 
