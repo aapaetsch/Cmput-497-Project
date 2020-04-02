@@ -5,6 +5,8 @@ import time
 import re
 import numpy as np
 import math
+import itertools
+import json
 
 class TranspositionTable(object):
     def __init__(self):
@@ -24,13 +26,19 @@ class TranspositionTable(object):
 class FourInARow_AB:
 	def __init__(self, maxDepth):
 		self.__maxDepth = maxDepth
-		self.heuristic = {0:0,1:0,2:0,3:0,4:0,5:0,6:0}
 		self.playMoveTimes = []
 		self.moveOrderTimes = []
 		self.evalTimes = []
 		self.terminalTime = []
 		self.inRowTime = []
 		self.addTime = []
+
+		
+
+		with open('scores.json', 'r') as f:
+			for line in f:
+				self.score = dict(json.loads(line))
+
 		#<---Give the state as a copy of the board--->
 		#<---Give it access to check win and move coords--->
 		#<--access to the current player--->
@@ -38,7 +46,6 @@ class FourInARow_AB:
 		self.calcTiming(self.playMoveTimes, 'Play Move:')
 		self.calcTiming(self.moveOrderTimes, 'Move Order:')
 		self.calcTiming(self.evalTimes, 'Evaluation:')
-		self.calcTiming(self.inRowTime, 'InRow:')
 		self.calcTiming(self.terminalTime, 'Terminal State:')
 		self.playMoveTimes = []
 		self.moveOrderTimes = []
@@ -56,32 +63,37 @@ class FourInARow_AB:
 		self.tt = TranspositionTable()
 		rootState = gameState.copyState()
 		self.ComputerPlayer = rootState.getCurrentPlayer()
+		print('Computer: {}'.format(self.ComputerPlayer))
 		self.zobristinit(rootState)
-		
+		self.heuristic = {0:0,1:0,2:0,3:0,4:0,5:0,6:0}	
+		self.boards = []
+		self.boardScores = []
+		self.boardMoves = []
 		alpha = -float('Inf')
 		beta = float("Inf")
 		value, move = self.alphaBetaGetMove(alpha, beta, self.__maxDepth, rootState)
 		print('Best Move:', move, '\tValue:', value)
 		self.showTiming()
+
+		#<---Showing the possible boards--->
+		self.printBoards()
+
+
 		return move if move != None else random.choice(rootState.getValidMoves())
 
 	def alphaBetaGetMove(self, alpha, beta, depth, gameState):
 		legalMoves = self.getMoveOrder(gameState.getValidMoves())
-		terminalState, points = self.isTerminal(legalMoves, gameState)
+		d = self.__maxDepth - (self.__maxDepth - depth)
 		bestMove = None
-		self.nodes = 0 
-		if terminalState:
-			return points, None 
 
 		#<---we should try move 3 first (center is strongest)
 		if 3 in legalMoves:
 			legalMoves.remove(3)
 			legalMoves.append(3)
-
+		
 
 		while legalMoves:
 			move = legalMoves.pop()
-			self.nodes += 1
 			start = time.time()
 			oldHash = self.hash
 			previousYX = gameState.previousYX
@@ -94,16 +106,20 @@ class FourInARow_AB:
 			self.changePlayer(gameState)
 
 			value = -self.alphaBetaDL( -beta, -alpha, depth - 1, gameState)
+			print('Value:',value)
 			print('Move:', move, 'Time:', time.time() - start)
 			if value > alpha:
 				alpha = value
 				bestMove = move
 
+			self.saveScores(np.copy(gameState.getBoard()), value, move)
+
+
 			self.hash = oldHash
 			self.undo(y, x, gameState, previousYX)
 
 			if value >= beta:
-				d = self.__maxDepth - (self.__maxDepth - depth)
+				
 				self.heuristic[move] += pow(2,d)
 				return beta, bestMove
 
@@ -111,24 +127,23 @@ class FourInARow_AB:
 
 		return alpha, bestMove
 
-	def alphaBetaDL(self, alpha, beta, depth, gameState):
+	def alphaBetaDL(self, alpha, beta, depth, state):
+		gameState = state.copyState()
 		result = self.tt.lookup(self.hash)
 		if result !=  None:
 			return result
 
-		legalMoves = self.getMoveOrder(gameState.getValidMoves())
-		terminalState, points = self.isTerminal(legalMoves, gameState)
+		d = self.__maxDepth - (self.__maxDepth - depth)	
+		if d <= 9:
+			legalMoves = self.getMoveOrder(gameState.getValidMoves())
+		else:
+			legalMoves = gameState.getValidMoves()
 		#<---Is terminal needs a state--->
-		if terminalState:
-			return points
-
-		elif depth == 0:
+		if self.isTerminal(legalMoves, gameState) or depth == 0:
 			return self.evaluation(gameState)
-
 
 		while legalMoves:
 			move = legalMoves.pop()
-			self.nodes += 1
 			#<---Play the move on a copy of the board
 			oldHash = self.hash
 			#<---Update the hash
@@ -143,7 +158,7 @@ class FourInARow_AB:
 			self.changePlayer(gameState)
 		
 			value = -self.alphaBetaDL(-beta, -alpha, depth - 1, gameState)
-			d = self.__maxDepth - (self.__maxDepth - depth)
+			
 
 			if value > alpha:
 				alpha = value
@@ -161,15 +176,14 @@ class FourInARow_AB:
 
 		return self.updateTT(alpha)
 
+
+
 	def getMoveOrder(self, moves):
 		s = time.time()
-		order = []
-		for m in moves:
-			order += [[m,self.heuristic[m]]]
-		order.sort(key=lambda x:x[1])
-		moves = [x[0] for x in order]
+		moves = sorted([m for m in moves], key = lambda m: self.heuristic[m])
 		self.moveOrderTimes.append(time.time()-s)
 		return moves
+
 
 	def changePlayer(self, gameState):
 		gameState.setCurrentPlayer( 3 - gameState.getCurrentPlayer())
@@ -188,124 +202,61 @@ class FourInARow_AB:
 			isWin, winType = gameState.checkWin(gameState.previousYX[1],gameState.previousYX[0])
 			self.changePlayer(gameState)
 			if isWin:
-				return True, 1000
+				return True
 			
 			elif len(legalMoves) == 0:
-				return True, 0 
+				return True 
 
 		self.terminalTime.append(time.time()-s)
-		return False, None
+		return False
 
 	def evaluation(self, gameState):
-		s = time.time()
-		#1000 for 4 in a row
-		#50 for 3 in a row
-		#10 for 2 in a row
-		#Only add if they have at least 1 empty next to it
+		start = time.time()
 		cp = gameState.getCurrentPlayer()
-		opponent = 3 - cp
 		board = gameState.getBoard()
-		playerScores = {2:0, 3:0, 4:0}
-		opponentScores = {2:0, 3:0, 4:0}
+		p1Score = 0 
+		p2Score = 0 
 
-		#<---Count Horizontal--->
 		for row in range(gameState.boardSize[0]):
-			p, op = self.getInRow(board[row] , cp, opponent)
-			playerScores = self.addToScore(playerScores, p)
-			opponentScores = self.addToScore(opponentScores, op)
+			s = self.score[str(gameState.boardSize[1])][self.getAddress(board[row])]
+			p1Score += s[0]
+			p2Score += s[1]
 
-		#<---Count vertical--->
 		for col in range(gameState.boardSize[1]):
-			p, op = self.getInRow(board[:,col] , cp, opponent)
-			playerScores = self.addToScore(playerScores, p)
-			opponentScores = self.addToScore(opponentScores, op)
-			
-		#<---Count Diagonal--->
-		#This will only work for gameboards of size (6,7)  
-		for diag in range(-2, 4):
-			p, op = self.getInRow(board.diagonal(diag), cp, opponent)
-			playerScores = self.addToScore(playerScores, p)
-			opponentScores = self.addToScore(opponentScores, op)
-			#<---Count anti diagonal--->
-			p2, op2 = self.getInRow(np.fliplr(board).diagonal(diag), cp, opponent)
-			playerScores = self.addToScore(playerScores, p2)
-			opponentScores = self.addToScore(opponentScores, op2)
-					
-		score = self.calculateScore(playerScores, False) - self.calculateScore(opponentScores, True)
-		self.evalTimes.append(time.time()-s)
-		return score
+			s = self.score[str(gameState.boardSize[0])][self.getAddress(board[:,col])]
+			p1Score += s[0]
+			p2Score += s[1]
 
-	def getInRow(self, arr, player, opponent):
-		s = time.time()
-		inRowCount = {2:0,3:0,4:0}
-		inRowCountOpp = {2:0,3:0,4:0}
-		inRow = 0
-		previous = None
-		itemBeforeSequence = None
-		arrLen = len(arr)
-		for i in range(arrLen):
-			if arr[i] != 0:
-				
-				if previous == None:
-					inRow += 1
+		s = self.diagonalEvaluation(board)
+		p1Score += s[0]
+		p2Score += s[1]
 
-				else:
-					if previous == arr[i]:
-						#<---If the current pos is who we are counting--->
-						inRow += 1
+		s = self.diagonalEvaluation(np.fliplr(board))
+		p1Score += s[0]
+		p2Score += s[1]
 
-					else:
-						#<---If the current position is not who we are currently counting--->
-
-						if itemBeforeSequence == 0 or inRow >= 4:
-							inRow = 4 if inRow > 4 else inRow
-							if inRow > 1:
-								if previous == player:
-									inRowCount[inRow] += 1
-								elif previous == opponent:
-									inRowCountOpp[inRow] += 1
-
-						itemBeforeSequence = previous
-						inRow = 1
-
-						
-			else:
-				inRow = 4 if inRow > 4 else inRow 
-				#<---If the current position is empty--->
-				if inRow > 1:
-					if previous == player:
-						inRowCount[inRow] += 1
-					elif previous == opponent:
-						inRowCountOpp[inRow] += 1
-
-				inRow = 0 #<---Reset the inRow count
-				itemBeforeSequence = 0 
-				previous = 0 
-			
-			if i != arrLen - 1:
-				previous = arr[i]
+		self.evalTimes.append(time.time() - start)
+		if cp == 1:
+			score = p1Score - p2Score * 1.5
+		else:
+			score = p2Score - p1Score * 1.5
 		
-		if itemBeforeSequence == 0 and inRow > 1:
-			inRow = 4 if inRow > 4 else inRow
-			if previous == player:
-				inRowCount[inRow] += 1
-			elif previous == opponent:
-				inRowCountOpp[inRow] += 1
-		self.inRowTime.append(time.time() - s)
-		return inRowCount, inRowCountOpp
-
-
-	def calculateScore(self, scoreDict, isOpponent):
-		score = ((scoreDict[4] * 1000) + (scoreDict[3] * 10 if isOpponent else 5) + (scoreDict[2] * 2))
+		if self.ComputerPlayer == 1:
+			return -score 
 		return score
+		
 
-	def addToScore(self, total, lineScore):
-		s = time.time()
-		total[2] += lineScore[2]
-		total[3] += lineScore[3]
-		total[4] += lineScore[4]
-		self.addTime.append([time.time()-s])
-		return total
+
+	def diagonalEvaluation(self, board):
+		p1Score = 0 
+		p2Score = 0 
+		lengths = ['4','5','6','6','5','4']
+		diags = [-2,-1,0,1,2,3]
+		for i in range(6):
+			s = self.score[lengths[i]][self.getAddress(board.diagonal(diags[i]))]
+			p1Score += s[0]
+			p2Score += s[1]
+		return p1Score, p2Score
 
 
 	def zobristinit(self, gameState):
@@ -334,3 +285,44 @@ class FourInARow_AB:
 		self.tt.store(self.hash, value)
 		return value
 	
+	def getAddress(self, arr):
+		return str(list(arr))
+
+	def printBoards(self):
+		title = '\n Possible Moves.\n'
+		board = ''
+		
+		srange = [[0,3],[3,6],[6,7]]
+		for x in range(3):
+			board += ('  ' + ' '.join([str(i) for i in range(7)])+'\t\t')* (3 if x < 2 else 1)   + '\n'
+			c = 0 
+
+			for y in range(6):
+
+				for b in range(srange[x][0],srange[x][1]):
+					try:
+						row = self.boards[b][y]
+						board += ' |'
+						for j in row:
+							if j == 0:
+								board += ' '
+							else:
+								board += str(j)
+							board += '|'
+						board += '\t'
+					except:
+						continue
+				board += '\n'
+			for _ in range(1 if x == 2 else 3):
+				try:
+					board += '  Score: {} Move: {}\t'.format(self.boardScores.pop(0), self.boardMoves.pop(0))
+				except:
+					continue
+			board += '\n\n'
+		print(title + board)
+
+
+	def saveScores(self, board, value, move):
+		self.boards.append(board)
+		self.boardScores.append(str(value))
+		self.boardMoves.append(str(move))

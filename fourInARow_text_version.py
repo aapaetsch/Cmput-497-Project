@@ -1,10 +1,8 @@
 import fourInARow
-import easyComputer as eC
 import sys
 import os
 import time
 from Computer_Player import FourInARow_AB
-from computer_boolean import FourInARow_Bool_MinMax
 
 CLEARTOGGLE = False  
 DEBUG_MODE = True
@@ -22,7 +20,7 @@ def main():
         elif mode == 'hard' or mode == '2hard':
             #10 takes 14 sec
             #11 takes 111
-            depth = 10
+            depth = 9
         else:
             depth = 0 
 
@@ -67,8 +65,10 @@ def main():
 
 
             elif mode == '2hard':
-                print("Error Mode not Implemeted")
-                break
+                if game.getCurrentPlayer() == 2:
+                    playerTurn(game)
+                else:
+                    game.turn(computer.findMove(game))
 
 
 
@@ -90,8 +90,13 @@ def main():
             break
 
 def playerTurn(game):
+   
     while True:
         move = input('Player {} Turn > '.format(game.getCurrentPlayer()))
+        
+        if move == 'q':
+            sys.exit()
+
         if game.turn(move):
             break
         else:

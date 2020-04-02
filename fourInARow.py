@@ -3,6 +3,7 @@ import sys
 import os
 import random
 import time
+import re
 
 class Four_In_A_Row(object):
 
@@ -37,31 +38,24 @@ class Four_In_A_Row(object):
         return cBoard
 
     def checkWin(self, x, y):
-        # This method takes in a moves x,y coords and checks if it results in a win
-        horizontal = self.__board[y]
-        vertical = self.__board[:,x]
-        diagonalLR = self.__board.diagonal(x - y)
-        diagonalRL = np.fliplr(self.__board).diagonal(abs(x-self.boardSize[0]) - y)
-
-        if self.__checkInRow(horizontal):
+        #<---Horizontal--->
+        if self.__checkInRow(self.__board[y]):
             return True, 'horizontal'
-        
-        elif self.__checkInRow(vertical):
+        #<---Vertical--->
+        elif self.__checkInRow(self.__board[:,x]):
             return True, 'vertical'
-        
-        elif len(diagonalLR) >= 4: 
-            if self.__checkInRow(diagonalLR):
-                return True, 'LR Diagonal'
-
-        elif len(diagonalRL) >= 4:
-            if self.__checkInRow(diagonalRL):
-                return True, 'RL diagonal'
+        #<---diagonalLR--->
+        elif self.__checkInRow(self.__board.diagonal(x - y)):
+            return True, 'diagonalLR'
+        #<---diagonalRL--->
+        elif self.__checkInRow(np.fliplr(self.__board).diagonal(abs(x - self.boardSize[0]) - y)):
+            return True, 'diagonalRL'
 
         return False, None
 
-    def __checkInRow(self, array):
+    def __checkInRow(self, arr):
         inRow = 0
-        for i in array:
+        for i in arr:
             inRow = inRow + 1 if i == self.__player else 0
             if inRow == 4:
                 return True
