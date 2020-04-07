@@ -106,7 +106,7 @@ class FourInARow_AB:
 		legalMoves = self.getMoveOrder(gameState.getValidMoves())
 		#<---Is terminal needs a state--->
 		if self.isTerminal(legalMoves, gameState) or depth == 0:
-			return self.evaluation(gameState)
+			return -self.evaluation(gameState)
 
 		while legalMoves:
 			move = legalMoves.pop()
@@ -191,9 +191,10 @@ class FourInARow_AB:
 		p2Score += s[1]
 
 		if self.ComputerPlayer == 1:
-			return p1Score - p2Score * 1.1
-		return p2Score - p1Score * 1.1
+			return round(p1Score - p2Score * 1.1, 3)
 
+		else:
+			return round(p2Score - p1Score * 1.1, 3)
 
 	def diagonalEvaluation(self, board):
 		p1Score = 0 
